@@ -1,0 +1,17 @@
+# FlightRadar – Python závislosti
+
+# Databáze
+sqlalchemy>=2.0.0
+
+# FastAPI backend
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+pydantic>=2.0.0
+
+# Sběr dat
+ryanair-py>=0.4.0       # Ryanair neoficiální API
+amadeus>=9.0.0          # Amadeus API (Qatar Airways, Emirates)
+requests>=2.31.0        # Wizzair HTTP volání
+
+# Env soubor
+python-dotenv>=1.0.0
