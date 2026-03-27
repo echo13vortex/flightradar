@@ -55,12 +55,15 @@ class DestinationOut(BaseModel):
     flag: str
     notes: str
     airlines: list[str]
+    search_return: bool = False
 
 
 class PriceOut(BaseModel):
     id: int
     price_eur: float
     departure_date: date
+    departure_time: Optional[str]
+    arrival_time: Optional[str]
     airline_detail: Optional[str]
     stops: int
     duration_minutes: Optional[int]
@@ -126,6 +129,7 @@ def get_destinations():
             flag=d["flag"],
             notes=d["notes"],
             airlines=d["airlines"],
+            search_return=d.get("search_return", False),
         )
         for d in config.DESTINATIONS
     ]
@@ -163,6 +167,35 @@ def get_prices(
             .all()
         )
         return prices
+
+
+@app.get("/api/prices/{iata}/return-leg", response_model=list[PriceOut])
+def get_return_prices(
+    iata: str,
+    days: int = Query(default=90, ge=1, le=365),
+    limit: int = Query(default=200, ge=1, le=1000),
+):
+    """Zpáteční lety (např. LIS→PRG pro destinaci LIS)."""
+    iata = iata.upper()
+    dest = _check_destination(iata)
+    if not dest.get("search_return"):
+        return []
+
+    since = datetime.utcnow() - timedelta(days=days)
+
+    with db.get_session() as session:
+        return (
+            session.query(db.Price)
+            .join(db.Route)
+            .filter(
+                db.Route.origin_iata == iata,
+                db.Route.destination_iata == config.ORIGIN,
+                db.Price.collected_at >= since,
+            )
+            .order_by(db.Price.departure_date, db.Price.price_eur)
+            .limit(limit)
+            .all()
+        )
 
 
 @app.get("/api/prices/{iata}/stats", response_model=StatsOut)

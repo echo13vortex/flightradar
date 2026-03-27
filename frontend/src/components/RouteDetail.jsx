@@ -13,22 +13,33 @@ export default function RouteDetail({ iata, dest, onClose }) {
   const [stats, setStats] = useState(null)
   const [chart, setChart] = useState([])
   const [prices, setPrices] = useState([])
+  const [returnPrices, setReturnPrices] = useState([])
   const [period, setPeriod] = useState(30)
+  const [direction, setDirection] = useState('outbound')
   const [loading, setLoading] = useState(true)
+
+  const hasReturn = dest?.search_return === true
 
   useEffect(() => {
     setLoading(true)
-    Promise.all([
+    const requests = [
       fetch(`${API}/prices/${iata}/stats?days=${period}`).then(r => r.json()),
       fetch(`${API}/prices/${iata}/chart?days=${period}`).then(r => r.json()),
-      fetch(`${API}/prices/${iata}?days=${period}&limit=100`).then(r => r.json()),
-    ]).then(([s, c, p]) => {
+      fetch(`${API}/prices/${iata}?days=${period}&limit=200`).then(r => r.json()),
+    ]
+    if (hasReturn) {
+      requests.push(fetch(`${API}/prices/${iata}/return-leg?days=${period}&limit=200`).then(r => r.json()))
+    }
+    Promise.all(requests).then(([s, c, p, ret]) => {
       setStats(s)
       setChart(c)
       setPrices(p)
+      if (ret) setReturnPrices(ret)
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [iata, period])
+
+  const displayPrices = direction === 'return' ? returnPrices : prices
 
   return (
     <div style={s.panel}>
@@ -43,6 +54,24 @@ export default function RouteDetail({ iata, dest, onClose }) {
         </div>
         <button style={s.close} onClick={onClose}>✕ Zavřít</button>
       </div>
+
+      {/* Přepínač tam/zpět (jen pokud má zpáteční data) */}
+      {hasReturn && (
+        <div style={s.dirTabs}>
+          <button
+            style={{ ...s.dirTab, ...(direction === 'outbound' ? s.dirTabActive : {}) }}
+            onClick={() => setDirection('outbound')}
+          >
+            PRG → {iata}
+          </button>
+          <button
+            style={{ ...s.dirTab, ...(direction === 'return' ? s.dirTabActive : {}) }}
+            onClick={() => setDirection('return')}
+          >
+            {iata} → PRG
+          </button>
+        </div>
+      )}
 
       {/* Přepínač období */}
       <div style={s.tabs}>
@@ -61,24 +90,35 @@ export default function RouteDetail({ iata, dest, onClose }) {
         <div style={s.loading}>Načítám…</div>
       ) : (
         <>
-          {/* Statistiky */}
-          {stats && <StatsRow stats={stats} />}
+          {/* Statistiky (jen pro odletový směr) */}
+          {direction === 'outbound' && stats && <StatsRow stats={stats} />}
 
-          {/* Graf */}
-          {chart.length > 0 ? (
-            <div style={s.chartWrap}>
-              <h3 style={s.sectionTitle}>Vývoj cen (denní minimum)</h3>
-              <PriceChart data={chart} />
-            </div>
-          ) : (
-            <div style={s.noChart}>Graf: zatím nedostatek dat pro zobrazení trendu.</div>
+          {/* Graf (jen pro odletový směr) */}
+          {direction === 'outbound' && (
+            chart.length > 0 ? (
+              <div style={s.chartWrap}>
+                <h3 style={s.sectionTitle}>Vývoj cen (denní minimum)</h3>
+                <PriceChart data={chart} />
+              </div>
+            ) : (
+              <div style={s.noChart}>Graf: zatím nedostatek dat pro zobrazení trendu.</div>
+            )
           )}
 
           {/* Tabulka */}
-          {prices.length > 0 && (
+          {displayPrices.length > 0 ? (
             <div style={s.tableWrap}>
-              <h3 style={s.sectionTitle}>Nalezené lety</h3>
-              <PriceTable prices={prices} />
+              <h3 style={s.sectionTitle}>
+                Nalezené lety
+                {direction === 'return' ? ` — ${iata} → PRG` : ` — PRG → ${iata}`}
+              </h3>
+              <PriceTable prices={displayPrices} />
+            </div>
+          ) : (
+            <div style={s.noChart}>
+              {direction === 'return'
+                ? 'Zatím žádná data pro zpáteční lety.'
+                : 'Zatím žádná data.'}
             </div>
           )}
         </>
@@ -133,6 +173,27 @@ const s = {
     cursor: 'pointer',
     fontSize: 12,
     whiteSpace: 'nowrap',
+  },
+  dirTabs: {
+    display: 'flex',
+    gap: 8,
+    marginBottom: 12,
+  },
+  dirTab: {
+    background: '#1e293b',
+    border: '1px solid #334155',
+    borderRadius: 8,
+    color: '#94a3b8',
+    padding: '7px 16px',
+    cursor: 'pointer',
+    fontSize: 13,
+    fontWeight: 600,
+    transition: 'all 0.15s',
+  },
+  dirTabActive: {
+    background: '#0f3460',
+    borderColor: '#38bdf8',
+    color: '#38bdf8',
   },
   tabs: { display: 'flex', gap: 8, marginBottom: 20 },
   tab: {

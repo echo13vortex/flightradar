@@ -5,12 +5,13 @@ const COLS = [
   { key: 'price_eur', label: 'Cena (EUR)' },
   { key: 'airline_detail', label: 'Aerolinka' },
   { key: 'stops', label: 'Přestupy' },
+  { key: 'departure_time', label: 'Odlet → Přílet' },
   { key: 'duration_minutes', label: 'Doba letu' },
   { key: 'collected_at', label: 'Nasbíráno' },
 ]
 
 export default function PriceTable({ prices }) {
-  const [sortKey, setSortKey] = useState('price_eur')
+  const [sortKey, setSortKey] = useState('departure_date')
   const [sortDir, setSortDir] = useState('asc')
 
   const sorted = [...prices].sort((a, b) => {
@@ -50,6 +51,7 @@ export default function PriceTable({ prices }) {
               <td style={{ ...s.td, ...s.priceCell }}>{p.price_eur.toFixed(0)} €</td>
               <td style={s.td}>{p.airline_detail ?? '—'}</td>
               <td style={s.td}>{p.stops === 0 ? 'Přímý' : `${p.stops}×`}</td>
+              <td style={s.td}>{formatTimes(p.departure_time, p.arrival_time)}</td>
               <td style={s.td}>{formatDuration(p.duration_minutes)}</td>
               <td style={{ ...s.td, color: '#475569' }}>{formatDatetime(p.collected_at)}</td>
             </tr>
@@ -75,6 +77,13 @@ function formatDuration(minutes) {
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
   return `${h}h ${m}m`
+}
+
+function formatTimes(dep, arr) {
+  if (!dep && !arr) return '—'
+  if (dep && arr) return `${dep} → ${arr}`
+  if (dep) return dep
+  return arr
 }
 
 const s = {
@@ -104,6 +113,7 @@ const s = {
     padding: '9px 14px',
     color: '#cbd5e1',
     borderBottom: '1px solid #1a2132',
+    whiteSpace: 'nowrap',
   },
   trEven: { background: '#111827' },
   priceCell: {

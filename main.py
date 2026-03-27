@@ -113,6 +113,70 @@ def run(airline_filter: str | None = None,
                 f"dne {cheapest['departure_date']}"
             )
 
+    # Zpáteční nogy (search_return: True v configu) – LIS→PRG Ne/Po
+    for dest_cfg in config.DESTINATIONS:
+        if not dest_cfg.get("search_return"):
+            continue
+        ret_origin = dest_cfg["iata"]       # LIS
+        ret_dest = config.ORIGIN            # PRG
+        airline = "kiwi"
+        route_label = f"{ret_origin}→{ret_dest}"
+
+        if airline_filter and airline_filter != airline:
+            continue
+        if dest_filter and dest_filter != ret_origin:
+            continue
+
+        logger.info(f"▶  Sbírám {route_label} [kiwi zpáteční]")
+
+        with db.get_session() as session:
+            # Zajisti existenci Route v DB pro opačný směr
+            db_route = session.query(db.Route).filter_by(
+                origin_iata=ret_origin,
+                destination_iata=ret_dest,
+                airline=airline,
+            ).first()
+            if db_route is None:
+                db_route = db.Route(
+                    origin_iata=ret_origin,
+                    destination_iata=ret_dest,
+                    destination_name=f"{dest_cfg['name']} → Praha",
+                    airline=airline,
+                )
+                session.add(db_route)
+                session.flush()
+
+            try:
+                prices = kiwi.collect_return_leg(
+                    ret_origin, ret_dest,
+                    search_days=dest_cfg.get("search_days"),
+                    max_stops=dest_cfg.get("max_stops"),
+                )
+            except Exception as e:
+                logger.error(f"Kiwi zpáteční chyba {route_label}: {e}")
+                db.save_snapshot(session, airline, route_label, "error", error=str(e))
+                errors += 1
+                continue
+
+            if not prices:
+                logger.info(f"   → Žádné výsledky.")
+                db.save_snapshot(session, airline, route_label, "empty")
+                continue
+
+            if dry_run:
+                cheapest = min(prices, key=lambda p: p["price_eur"])
+                logger.info(f"   [DRY RUN] {len(prices)} letů, nejlevnější: {cheapest['price_eur']}€")
+                continue
+
+            saved = db.save_prices(session, db_route, prices)
+            db.save_snapshot(session, airline, route_label, "ok", records=saved)
+            total_saved += saved
+            cheapest = min(prices, key=lambda p: p["price_eur"])
+            logger.info(
+                f"   ✓ Uloženo {saved} záznamů | "
+                f"Nejlevnější: {cheapest['price_eur']}€ dne {cheapest['departure_date']}"
+            )
+
     logger.info(f"═══ Hotovo. Uloženo {total_saved} záznamů. Chyb: {errors}. ═══")
 
 

@@ -47,8 +47,10 @@ DESTINATIONS = [
         "iata": "FNC",
         "country": "PT",
         "flag": "🇵🇹",
-        "airlines": ["travelpayouts", "kiwi"],
-        "notes": "Přímé lety nebo přes Lisabon / Porto",
+        "airlines": ["kiwi"],
+        "notes": "Přestup přes Lisabon nebo Porto",
+        "search_days": 180,
+        "search_return": True,  # hledej i zpáteční leg FNC→PRG (Ne/Po)
     },
     {
         "name": "Lisabon",
@@ -57,8 +59,9 @@ DESTINATIONS = [
         "flag": "🇵🇹",
         "airlines": ["kiwi"],
         "notes": "Pouze přímé lety",
-        "max_stops": 0,       # jen přímé lety
-        "search_days": 90,    # hledej jen 90 dní dopředu
+        "max_stops": 0,
+        "search_days": 90,
+        "search_return": True,  # hledej i zpáteční leg LIS→PRG (Ne/Po)
     },
 ]
 

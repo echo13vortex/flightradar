@@ -65,6 +65,8 @@ class Price(Base):
     flight_numbers = Column(String(200), nullable=True)   # např. "QR284,QR820"
     stops = Column(Integer, default=0)               # počet přestupů
     duration_minutes = Column(Integer, nullable=True)
+    departure_time = Column(String(5), nullable=True)    # "HH:MM"
+    arrival_time = Column(String(5), nullable=True)      # "HH:MM"
     collected_at = Column(DateTime, default=datetime.utcnow)
 
     route = relationship("Route", back_populates="prices")
@@ -133,8 +135,20 @@ def save_prices(session: Session, route: Route, prices: list[dict]) -> int:
     price_eur, departure_date + volitelné: price_original, currency_original,
     airline_detail, flight_numbers, stops, duration_minutes, return_date
     """
+    # Build set of existing (departure_date, price_eur, airline_detail) to skip duplicates
+    existing = set(
+        (str(r[0]), float(r[1]), r[2])
+        for r in session.query(
+            Price.departure_date, Price.price_eur, Price.airline_detail
+        ).filter(Price.route_id == route.id).all()
+    )
+
     saved = 0
     for p in prices:
+        key = (str(p["departure_date"]), float(p["price_eur"]), p.get("airline_detail"))
+        if key in existing:
+            continue
+        existing.add(key)
         price = Price(
             route_id=route.id,
             price_eur=p["price_eur"],
@@ -146,6 +160,8 @@ def save_prices(session: Session, route: Route, prices: list[dict]) -> int:
             flight_numbers=p.get("flight_numbers"),
             stops=p.get("stops", 0),
             duration_minutes=p.get("duration_minutes"),
+            departure_time=p.get("departure_time"),
+            arrival_time=p.get("arrival_time"),
         )
         session.add(price)
         saved += 1

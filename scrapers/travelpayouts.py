@@ -144,13 +144,20 @@ def collect(origin: str, destination: str) -> list[dict]:
     """
     Sbírá ceny z Travelpayouts pro trasu origin→destination.
     Kombinuje /v2/prices/latest (broad) + /v1/prices/cheap (po měsících).
-    Vrátí normalizované záznamy filtrované na prodloužené víkendy (Čt+Pá).
+    Respektuje per-destinační nastavení max_stops a search_days z config.py.
     """
     token = _get_token()
     if not token:
         return []
 
-    logger.info(f"Travelpayouts: hledám {origin}→{destination}")
+    dest_cfg = config.DESTINATION_MAP.get(destination, {})
+    max_stops = dest_cfg.get("max_stops", None)   # None = bez omezení
+    search_days = dest_cfg.get("search_days", None)  # None = globální default
+
+    logger.info(
+        f"Travelpayouts: hledám {origin}→{destination} "
+        f"(max_stops={max_stops}, search_days={search_days or config.SEARCH_DAYS_AHEAD})"
+    )
 
     # Primární zdroj – latest prices
     raw_all = []
@@ -158,7 +165,7 @@ def collect(origin: str, destination: str) -> list[dict]:
     parsed = [_parse_latest_item(item) for item in latest]
     raw_all.extend([p for p in parsed if p is not None])
 
-    # Doplňkový zdroj – cheapest by month (zachytí i to co latest nezahrnuje)
+    # Doplňkový zdroj – cheapest by month
     monthly = _fetch_monthly(origin, destination, token)
     raw_all.extend(monthly)
 
@@ -171,8 +178,12 @@ def collect(origin: str, destination: str) -> list[dict]:
             seen.add(key)
             unique.append(r)
 
-    # Filtruj jen prodloužené víkendy (čtvrtek=3, pátek=4)
-    weekend_dates = {str(d) for d in config.get_extended_weekend_dates()}
+    # Filtruj max_stops (pokud nastaveno)
+    if max_stops is not None:
+        unique = [r for r in unique if int(r.get("stops", 0)) <= max_stops]
+
+    # Filtruj jen prodloužené víkendy v daném horizontu
+    weekend_dates = {str(d) for d in config.get_extended_weekend_dates(search_days)}
     unique = [r for r in unique if str(r["departure_date"]) in weekend_dates]
 
     logger.info(

@@ -15,19 +15,19 @@ export default function App() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    Promise.all([
-      fetch(`${API}/summary`).then(r => r.json()),
-      fetch(`${API}/destinations`).then(r => r.json()),
-    ])
-      .then(([sum, dests]) => {
-        setSummary(sum)
-        setDestinations(dests)
-        setLoading(false)
-      })
-      .catch(e => {
-        setError('Nelze se připojit k API. Spusť backend: uvicorn api.app:app --reload')
-        setLoading(false)
-      })
+    // Destinations and summary are fetched independently so that
+    // a summary failure doesn't prevent destinations from loading.
+    const fetchDests = fetch(`${API}/destinations`)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json() })
+      .then(dests => setDestinations(dests))
+      .catch(() => {})
+
+    const fetchSummary = fetch(`${API}/summary`)
+      .then(r => { if (!r.ok) throw new Error(r.status); return r.json() })
+      .then(sum => setSummary(sum))
+      .catch(() => setError('Nelze se připojit k API. Spusť backend: uvicorn api.app:app --reload'))
+
+    Promise.all([fetchDests, fetchSummary]).finally(() => setLoading(false))
   }, [])
 
   return (
