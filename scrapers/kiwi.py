@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 KIWI_CITY_SLUGS = {
     "PRG": "prague-czechia",
     "LIS": "lisbon-portugal",
-    "FNC": "funchal-madeira-portugal",
+    "FNC": "funchal-portugal",
     "NRT": "tokyo-japan",
     "OKA": "okinawa-japan",
 }
