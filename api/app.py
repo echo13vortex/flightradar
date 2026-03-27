@@ -35,6 +35,10 @@ app = FastAPI(
     version="1.0.0",
 )
 
+@app.on_event("startup")
+def on_startup():
+    db.init_db()
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],   # v produkci omez na doménu frontendu
