@@ -41,6 +41,7 @@ DESTINATIONS = [
         "flag": "🇯🇵",
         "airlines": ["travelpayouts", "kiwi"] + (["amadeus"] if AMADEUS_ENABLED else []),
         "notes": "Přestup nutný (obvykle Tokio + domácí let v Japonsku)",
+        "search_return": True,  # hledej i zpáteční leg OKA→PRG (Ne/Po)
     },
     {
         "name": "Madeira – Funchal",

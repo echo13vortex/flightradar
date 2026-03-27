@@ -1,18 +1,31 @@
 # ✈️ FlightRadar
 
 Automatizovaný tracker cen letenek z **Prahy (PRG)** do vybraných destinací.
-Data se sbírají 1× denně, ukládají do databáze a zobrazují v přehledném webovém dashboardu s grafy.
+Data se sbírají 1× denně pomocí headless scraperu, ukládají do SQLite a zobrazují v přehledném webovém dashboardu.
 
 ---
 
 ## Sledované destinace
 
-| Destinace | IATA | Přestupy | Zdroje dat |
-|-----------|------|----------|------------|
-| 🇯🇵 Japonsko – Tokio | NRT | Ano (Doha / Dubaj) | Qatar Airways, Emirates |
-| 🇯🇵 Okinawa – Naha | OKA | Ano (Tokio + domácí) | Qatar Airways, Emirates |
-| 🇵🇹 Madeira – Funchal | FNC | Případně | Ryanair, Wizzair, Qatar, Emirates |
-| 🇵🇹 Lisabon | LIS | Případně | Ryanair, Wizzair, Qatar, Emirates |
+| Destinace | IATA | Přestupy | Směry |
+|-----------|------|----------|-------|
+| 🇯🇵 Japonsko – Tokio | NRT | Ano (Doha / Dubaj) | PRG→NRT + NRT→PRG |
+| 🇯🇵 Okinawa – Naha | OKA | Ano (Tokio + domácí) | PRG→OKA + OKA→PRG |
+| 🇵🇹 Madeira – Funchal | FNC | Možné | PRG→FNC + FNC→PRG |
+| 🇵🇹 Lisabon | LIS | Ne (pouze přímé) | PRG→LIS + LIS→PRG |
+
+Hledají se lety na **prodloužené víkendy** (čtvrtek + pátek odlet tam, neděle + pondělí odlet zpět). Každý směr je zobrazeno zvlášť, takže si můžeš zkombinovat nejlevnější termíny.
+
+---
+
+## Tech stack
+
+| Vrstva | Technologie |
+|--------|-------------|
+| Scraping | Python 3.10+, Playwright (headless Chromium), Requests |
+| Databáze | SQLite via SQLAlchemy |
+| Backend API | FastAPI + Uvicorn (port 8002) |
+| Frontend | React 18 + Recharts + Vite |
 
 ---
 
@@ -21,110 +34,189 @@ Data se sbírají 1× denně, ukládají do databáze a zobrazují v přehledné
 ```
 [Cron job – 1× denně]
         ↓
-[Python scrapery]
-  ├── ryanair.py    → ryanair-py (neoficiální)
-  ├── wizzair.py    → Wizzair community endpointy
-  └── amadeus.py    → Amadeus API (Qatar Airways + Emirates)
+[main.py – spouštěč sběru]
+  ├── scrapers/kiwi.py       → Playwright scraping Kiwi.com (GraphQL intercept)
+  ├── scrapers/travelpayouts.py → Travelpayouts / Aviasales Data API
+  ├── scrapers/wizzair.py    → Wizzair neoficiální API (neaktivní – vrací 404)
+  └── scrapers/amadeus.py    → Amadeus API (neaktivní – AMADEUS_ENABLED=False)
         ↓
 [normalizer.py – převod měn na EUR]
         ↓
-[SQLite / PostgreSQL databáze]
+[SQLite databáze – flightradar.db]
         ↓
-[FastAPI backend – REST API]
+[FastAPI backend – REST API na portu 8002]
         ↓
-[React frontend – grafy + přehled cen]
+[React frontend – dashboard na portu 5173 (dev) / 80 (produkce)]
 ```
 
 ---
 
-## Tech stack
-
-| Vrstva | Technologie |
-|--------|-------------|
-| Sběr dat | Python 3.11+, `ryanair-py`, `amadeus`, `requests` |
-| Databáze | SQLite (lokálně) / PostgreSQL (VPS) via SQLAlchemy |
-| Backend API | FastAPI + Uvicorn |
-| Frontend | React 18 + Recharts + Vite |
-| Nasazení | VPS cron job / Cloudflare Pages |
-
----
-
-## Instalace a spuštění
+## Instalace
 
 ### Požadavky
 
-- Python 3.11+
+- Ubuntu 22.04+ (nebo Raspberry Pi OS 64-bit / Ubuntu Server)
+- Python 3.10+
 - Node.js 18+
-- Amadeus API klíče (zdarma na [developers.amadeus.com](https://developers.amadeus.com))
+- ~500 MB místa (Chromium)
 
-### 1. Klonování a nastavení
+### Rychlá instalace (doporučeno)
 
 ```bash
-git clone https://github.com/<tvuj-ucet>/flightradar.git
+git clone https://github.com/echo13vortex/flightradar.git
+cd flightradar
+bash install.sh
+```
+
+Skript automaticky:
+1. Nainstaluje systémové závislosti (`apt`)
+2. Nainstaluje Node.js 20 (pokud chybí)
+3. Vytvoří Python virtual environment (`.venv`)
+4. Nainstaluje Python balíčky (`requirements.txt`)
+5. Stáhne a nainstaluje headless Chromium pro Playwright
+6. Sestaví React frontend (`frontend/dist/`)
+7. Vytvoří `.env` soubor ze šablony
+
+### Ruční instalace
+
+```bash
+git clone https://github.com/echo13vortex/flightradar.git
 cd flightradar
 
-# Python závislosti
+# Python virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+
+# Playwright + Chromium (~200 MB)
+playwright install chromium --with-deps
+
+# Frontend
+cd frontend && npm install && npm run build && cd ..
 
 # Konfigurace
 cp .env.example .env
-# → vyplň AMADEUS_API_KEY a AMADEUS_API_SECRET v .env
+nano .env   # doplň TRAVELPAYOUTS_TOKEN
 ```
 
-### 2. Inicializace databáze
+---
 
-```bash
-python database.py --init
+## Konfigurace (.env)
+
+```env
+# Travelpayouts / Aviasales Data API (zdarma, registrace na travelpayouts.com)
+TRAVELPAYOUTS_TOKEN=tvůj_token
+
+# Port backendu (default: 8002)
+PORT=8002
+
+# Databáze (default: SQLite v adresáři projektu)
+DATABASE_URL=sqlite:///flightradar.db
+
+# Úroveň logování
+LOG_LEVEL=INFO
 ```
 
-Vytvoří `flightradar.db` a naplní tabulku tras z `config.py`.
+**Travelpayouts token** získáš zdarma na [travelpayouts.com](https://travelpayouts.com) → API → Data API. Funguje bez tokenu, ale s tokenem máš vyšší limity.
 
-### 3. První sběr dat
+---
+
+## Spuštění (vývojové prostředí)
 
 ```bash
-# Dry-run – jen zobrazí co by sbíralo, nic neuloží
-python main.py --dry-run
+# Spustí backend i frontend v jednom okně (Ctrl+C ukončí obojí)
+bash start.sh
+# → http://localhost:5173
+```
 
-# Ostrý sběr – všechny trasy
+Nebo odděleně:
+
+```bash
+# Backend
+source .venv/bin/activate
+uvicorn api.app:app --reload --port 8002 --app-dir .
+
+# Frontend (druhý terminál)
+cd frontend && npm run dev
+```
+
+---
+
+## Sběr dat
+
+```bash
+source .venv/bin/activate
+
+# Všechny destinace
 python main.py
-
-# Jen jedna aerolinka
-python main.py --airline amadeus
 
 # Jen jedna destinace
 python main.py --dest LIS
+python main.py --dest FNC
+python main.py --dest OKA
+python main.py --dest NRT
 ```
 
-### 4. Backend API
+Sběr trvá dle destinace:
+- **LIS** – ~3 minuty (13 dat × 2 směry)
+- **FNC** – ~7 minut (25 dat × 2 směry)
+- **OKA** – ~25 minut (52 dat × 2 směry)
+- **NRT** – ~25 minut (52 dat × 2 směry)
+
+---
+
+## Produkční nasazení (nginx + systemd)
+
+Pro trvalý provoz na Raspberry Pi / Ubuntu serveru:
 
 ```bash
-uvicorn api.app:app --reload --port 8000
-# → http://localhost:8000/docs  (Swagger UI)
+bash setup-production.sh
 ```
 
-### 5. Frontend
+Skript nakonfiguruje:
+- **nginx** na portu 80 – servíruje frontend + proxuje `/api/`
+- **systemd service** `flightradar-api` – uvicorn běží na pozadí a startuje při restartu
+- **cron job** – `python main.py` každý den ve 4:00
+
+Po instalaci je dashboard dostupný na `http://<IP-adresy-pi>`.
+
+### Užitečné příkazy
 
 ```bash
-cd frontend
-npm install
-npm run dev
-# → http://localhost:5173
+# Stav API služby
+sudo systemctl status flightradar-api
+
+# Logy API v reálném čase
+sudo journalctl -u flightradar-api -f
+
+# Restart API
+sudo systemctl restart flightradar-api
+
+# Logy cron sběru
+tail -f cron.log
+
+# Ruční spuštění sběru
+source .venv/bin/activate && python main.py
 ```
 
 ---
 
 ## API endpointy
 
+Backend běží na portu 8002. Swagger dokumentace: `http://localhost:8002/docs`
+
 | Metoda | Endpoint | Popis |
 |--------|----------|-------|
-| GET | `/api/destinations` | Seznam sledovaných destinací |
-| GET | `/api/summary` | Nejlevnější ceny pro všechny destinace |
-| GET | `/api/prices/{iata}` | Historie cen pro destinaci |
-| GET | `/api/prices/{iata}/stats` | Statistiky (min/max/průměr) |
-| GET | `/api/prices/{iata}/chart` | Data pro čárový graf |
-| GET | `/api/snapshots` | Log posledních sběrů |
+| GET | `/api/destinations` | Seznam destinací s konfigurací |
+| GET | `/api/summary` | Nejlevnější aktuální ceny (všechny destinace) |
+| GET | `/api/prices/{iata}` | Lety pro destinaci (s filtrováním, řazením) |
+| GET | `/api/prices/{iata}/stats` | Statistiky (min / průměr / max) |
+| GET | `/api/prices/{iata}/chart` | Data pro graf vývoje cen |
+| GET | `/api/snapshots` | Historie sběrů (monitoring) |
 
-Plná dokumentace API dostupná na `http://localhost:8000/docs` po spuštění backendu.
+Parametry pro `/api/prices/{iata}`:
+- `?days=30` – pouze lety v nejbližších N dnech
+- `?limit=100` – maximálně N výsledků
 
 ---
 
@@ -139,10 +231,11 @@ id, origin_iata, destination_iata, destination_name, airline, active, created_at
 ```
 id, route_id, price_eur, price_original, currency_original,
 departure_date, return_date, airline_detail, flight_numbers,
-stops, duration_minutes, collected_at
+stops, duration_minutes, departure_time, arrival_time,
+source_url, collected_at
 ```
 
-### `snapshots` – metadata sběrů (monitoring)
+### `snapshots` – metadata sběrů
 ```
 id, collected_at, source, route, status, records_saved, error_message
 ```
@@ -153,70 +246,53 @@ id, collected_at, source, route, status, records_saved, error_message
 
 ```
 flightradar/
-├── config.py            # Destinace, trasy, konstanty
-├── database.py          # SQLAlchemy modely + init
-├── normalizer.py        # Převod měn do EUR
-├── main.py              # Hlavní spouštěč sběru
+├── config.py              # Destinace, parametry hledání, helper funkce
+├── database.py            # SQLAlchemy modely + init_db() + save_prices()
+├── normalizer.py          # Převod měn na EUR
+├── main.py                # Spouštěč sběru (argparse: --dest, --airline)
 ├── scrapers/
-│   ├── ryanair.py       # Ryanair (ryanair-py)
-│   ├── wizzair.py       # Wizzair (neoficiální API)
-│   └── amadeus.py       # Qatar Airways + Emirates (Amadeus SDK)
+│   ├── kiwi.py            # ★ Hlavní scraper – Playwright + GraphQL intercept
+│   ├── travelpayouts.py   # Travelpayouts / Aviasales Data API
+│   ├── ryanair.py         # Ryanair (neaktivní – z PRG sem nelétá)
+│   ├── wizzair.py         # Wizzair (neaktivní – API vrací 404)
+│   └── amadeus.py         # Amadeus API (neaktivní – AMADEUS_ENABLED=False)
 ├── api/
-│   └── app.py           # FastAPI backend
+│   └── app.py             # FastAPI REST API
 ├── frontend/
-│   ├── vite.config.js
+│   ├── vite.config.js     # Vite + proxy /api → port 8002
 │   ├── index.html
 │   └── src/
 │       ├── App.jsx
 │       └── components/
-│           ├── Header.jsx       # Hlavička aplikace
-│           ├── Summary.jsx      # Karty destinací s indikátory
-│           ├── RouteDetail.jsx  # Detail destinace
-│           ├── PriceChart.jsx   # Čárový graf vývoje cen
-│           ├── PriceTable.jsx   # Tabulka letů (řaditelná)
-│           └── SnapshotLog.jsx  # Monitoring sběrů
-├── requirements.txt
-├── .env.example
+│           ├── Header.jsx         # Hlavička
+│           ├── Summary.jsx        # Karty destinací
+│           ├── RouteDetail.jsx    # Detail destinace (tabulka + graf)
+│           ├── PriceChart.jsx     # Graf vývoje nejnižší ceny
+│           ├── PriceTable.jsx     # Tabulka letů (řaditelná, odkaz na Kiwi)
+│           └── SnapshotLog.jsx    # Log sběrů
+├── install.sh             # Instalace pro Ubuntu / Raspberry Pi
+├── setup-production.sh    # Produkce: nginx + systemd + cron
+├── start.sh               # Dev spuštění (backend + frontend najednou)
+├── requirements.txt       # Python závislosti
+├── .env.example           # Šablona konfigurace
 └── .gitignore
 ```
 
 ---
 
-## Cron job (automatický sběr)
+## Jak funguje scraping
 
-Přidej do crontabu (`crontab -e`):
+Hlavní zdroj dat je **Kiwi.com** bez API klíče:
 
-```cron
-# Každý den ve 3:00 ráno
-0 3 * * * /usr/bin/python3 /cesta/k/flightradar/main.py >> /var/log/flightradar.log 2>&1
-```
+1. Playwright spustí headless Chromium
+2. Načte `kiwi.com/search/results/{origin}/{destination}/{datum}/no-return/`
+3. Zachytí GraphQL odpověď na `SearchOneWayItinerariesQuery`
+4. Parsuje ceny, aerolinky, časy odletu/příletu, přestupy
+5. Uloží do SQLite s deduplication (nezapíše duplicitní záznamy)
 
----
-
-## Konfigurace destinací
-
-Destinace a trasy se konfigurují v `config.py`:
-
-```python
-DESTINATIONS = [
-    {
-        "name": "Japonsko – Tokio",
-        "iata": "NRT",
-        "flag": "🇯🇵",
-        "airlines": ["amadeus"],  # které scrapery použít
-    },
-    # ...
-]
-```
-
----
-
-## Poznámky
-
-- **Ryanair a Wizzair** nemají veřejné API – použití je v šedé právní zóně (ToS)
-- **Amadeus sandbox** vrací testovací data; pro reálné ceny přepni `AMADEUS_ENV=production` v `.env`
-- Všechny ceny jsou normalizovány do **EUR** pro srovnatelnost
-- Při blokování IP Ryanairu / Wizzairu zvaž rotaci IP nebo proxy
+> **Poznámka ke slugům:** URL slug destinace musí přesně odpovídat Kiwi interním názvům.
+> Špatný slug → Kiwi vrátí zpáteční query místo jednosměrné.
+> Správné slugy: `prague-czechia`, `lisbon-portugal`, `funchal-portugal`, `tokyo-japan`, `naha-okinawa-island-japan`
 
 ---
 

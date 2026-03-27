@@ -25,7 +25,7 @@ KIWI_CITY_SLUGS = {
     "LIS": "lisbon-portugal",
     "FNC": "funchal-portugal",
     "NRT": "tokyo-japan",
-    "OKA": "okinawa-japan",
+    "OKA": "naha-okinawa-island-japan",
 }
 
 
