@@ -31,7 +31,7 @@ DESTINATIONS = [
         "iata": "NRT",
         "country": "JP",
         "flag": "🇯🇵",
-        "airlines": ["amadeus"] if AMADEUS_ENABLED else [],  # Qatar Airways / Emirates
+        "airlines": ["travelpayouts"] + (["amadeus"] if AMADEUS_ENABLED else []),
         "notes": "Přestup nutný (obvykle Doha nebo Dubaj)",
     },
     {
@@ -39,7 +39,7 @@ DESTINATIONS = [
         "iata": "OKA",
         "country": "JP",
         "flag": "🇯🇵",
-        "airlines": ["amadeus"] if AMADEUS_ENABLED else [],  # Qatar / Emirates
+        "airlines": ["travelpayouts"] + (["amadeus"] if AMADEUS_ENABLED else []),
         "notes": "Přestup nutný (obvykle Tokio + domácí let v Japonsku)",
     },
     {
@@ -47,7 +47,7 @@ DESTINATIONS = [
         "iata": "FNC",
         "country": "PT",
         "flag": "🇵🇹",
-        "airlines": ["ryanair", "wizzair"] + (["amadeus"] if AMADEUS_ENABLED else []),
+        "airlines": ["travelpayouts"],
         "notes": "Přímé lety nebo přes Lisabon / Porto",
     },
     {
@@ -55,7 +55,7 @@ DESTINATIONS = [
         "iata": "LIS",
         "country": "PT",
         "flag": "🇵🇹",
-        "airlines": ["ryanair", "wizzair"] + (["amadeus"] if AMADEUS_ENABLED else []),
+        "airlines": ["travelpayouts"],
         "notes": "Přímé lety nebo přestup",
     },
 ]
@@ -81,6 +81,9 @@ def get_routes():
 AMADEUS_API_KEY = os.getenv("AMADEUS_API_KEY", "")
 AMADEUS_API_SECRET = os.getenv("AMADEUS_API_SECRET", "")
 AMADEUS_ENV = os.getenv("AMADEUS_ENV", "test")  # "test" nebo "production"
+
+# ── Travelpayouts / Aviasales Data API ────────────────────────────────────────
+TRAVELPAYOUTS_TOKEN = os.getenv("TRAVELPAYOUTS_TOKEN", "")
 
 # ── Databáze ──────────────────────────────────────────────────────────────────
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///flightradar.db")

@@ -16,7 +16,7 @@ from datetime import datetime
 
 import config
 import database as db
-from scrapers import ryanair, wizzair, amadeus
+from scrapers import ryanair, wizzair, amadeus, travelpayouts
 
 logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL, logging.INFO),
@@ -29,6 +29,7 @@ SCRAPER_MAP = {
     "ryanair": ryanair,
     "wizzair": wizzair,
     "amadeus": amadeus,
+    "travelpayouts": travelpayouts,
 }
 
 
