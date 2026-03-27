@@ -31,7 +31,7 @@ DESTINATIONS = [
         "iata": "NRT",
         "country": "JP",
         "flag": "🇯🇵",
-        "airlines": ["travelpayouts"] + (["amadeus"] if AMADEUS_ENABLED else []),
+        "airlines": ["travelpayouts", "kiwi"] + (["amadeus"] if AMADEUS_ENABLED else []),
         "notes": "Přestup nutný (obvykle Doha nebo Dubaj)",
     },
     {
@@ -39,7 +39,7 @@ DESTINATIONS = [
         "iata": "OKA",
         "country": "JP",
         "flag": "🇯🇵",
-        "airlines": ["travelpayouts"] + (["amadeus"] if AMADEUS_ENABLED else []),
+        "airlines": ["travelpayouts", "kiwi"] + (["amadeus"] if AMADEUS_ENABLED else []),
         "notes": "Přestup nutný (obvykle Tokio + domácí let v Japonsku)",
     },
     {
@@ -47,7 +47,7 @@ DESTINATIONS = [
         "iata": "FNC",
         "country": "PT",
         "flag": "🇵🇹",
-        "airlines": ["travelpayouts"],
+        "airlines": ["travelpayouts", "kiwi"],
         "notes": "Přímé lety nebo přes Lisabon / Porto",
     },
     {
@@ -55,8 +55,10 @@ DESTINATIONS = [
         "iata": "LIS",
         "country": "PT",
         "flag": "🇵🇹",
-        "airlines": ["travelpayouts"],
-        "notes": "Přímé lety nebo přestup",
+        "airlines": ["kiwi"],
+        "notes": "Pouze přímé lety",
+        "max_stops": 0,       # jen přímé lety
+        "search_days": 90,    # hledej jen 90 dní dopředu
     },
 ]
 
@@ -102,10 +104,13 @@ def get_date_range():
     dates = get_search_dates()
     return dates[0], dates[-1]
 
-def get_extended_weekend_dates() -> list:
+def get_extended_weekend_dates(days_ahead: int | None = None) -> list:
     """
-    Vrátí čtvrtky a pátky na příštích SEARCH_DAYS_AHEAD dní.
+    Vrátí čtvrtky a pátky v horizontu days_ahead dní (default: SEARCH_DAYS_AHEAD).
     Prodloužený víkend = odlet ve čtvrtek nebo pátek.
     weekday(): 0=Po, 1=Út, 2=St, 3=Čt, 4=Pá
     """
-    return [d for d in get_search_dates() if d.weekday() in (3, 4)]
+    today = datetime.now().date()
+    horizon = days_ahead if days_ahead is not None else SEARCH_DAYS_AHEAD
+    dates = [today + timedelta(days=i) for i in range(1, horizon + 1)]
+    return [d for d in dates if d.weekday() in (3, 4)]
