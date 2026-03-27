@@ -88,12 +88,11 @@ sudo systemctl enable flightradar-api
 sudo systemctl restart flightradar-api
 success "flightradar-api service spuštěn"
 
-# ── 3. cron job pro denní sběr dat ───────────────────────────────────────────
-info "Nastavení cron jobu (každý den ve 4:00)..."
-CRON_CMD="0 4 * * * cd ${PROJECT_DIR} && ${PROJECT_DIR}/.venv/bin/python main.py >> ${PROJECT_DIR}/cron.log 2>&1"
-# Přidá cron jen pokud tam ještě není
-(crontab -l 2>/dev/null | grep -v "flightradar\|main.py"; echo "$CRON_CMD") | crontab -
-success "Cron job nastaven (denně ve 4:00)"
+# ── 3. Cron joby + watchdog + maintenance + logrotate ────────────────────────
+info "Nastavení cron jobů, watchdogu a logrotate..."
+chmod +x "${PROJECT_DIR}/scripts/"*.sh
+bash "${PROJECT_DIR}/scripts/setup_crons.sh"
+success "Cron joby nastaveny"
 
 # ── Hotovo ────────────────────────────────────────────────────────────────────
 IP=$(hostname -I | awk '{print $1}')
@@ -105,10 +104,12 @@ echo ""
 echo "  Dashboard:    http://${IP}"
 echo "  API:          http://${IP}/api/summary"
 echo ""
-echo "  Logy API:     sudo journalctl -u flightradar-api -f"
-echo "  Logy sběru:   tail -f ${PROJECT_DIR}/cron.log"
-echo "  Restart API:  sudo systemctl restart flightradar-api"
+echo "  Logy API:      sudo journalctl -u flightradar-api -f"
+echo "  Logy sběru:    tail -f ${PROJECT_DIR}/logs/cron.log"
+echo "  Logy watchdog: tail -f ${PROJECT_DIR}/logs/watchdog.log"
+echo "  Restart API:   sudo systemctl restart flightradar-api"
+echo "  Ruční záloha:  bash ${PROJECT_DIR}/scripts/backup.sh"
 echo ""
-warn "Cron sbírá data každý den ve 4:00. První sběr spusť ručně:"
+warn "První sběr dat spusť ručně (cron začne automaticky ve 04:00):"
 echo "  source .venv/bin/activate && python main.py"
 echo ""
