@@ -64,8 +64,8 @@ ROOT_CRONS=$(cat <<EOF
 # Watchdog (API health + auto-restart) — každých 5 minut
 */5 * * * *  $SCRIPTS_DIR/watchdog.sh >> $LOG_DIR/watchdog.log 2>&1
 
-# Noční systémová údržba — každou neděli v 05:00
-0 5 * * 0    $SCRIPTS_DIR/maintenance.sh >> $LOG_DIR/maintenance.log 2>&1
+# Noční systémová údržba — každou neděli ve 23:00
+0 23 * * 0   $SCRIPTS_DIR/maintenance.sh >> $LOG_DIR/maintenance.log 2>&1
 EOF
 )
 
@@ -103,7 +103,7 @@ echo "  MONITORING:"
 echo "    Watchdog       každých 5 min (auto-restart API)"
 echo ""
 echo "  ÚDRŽBA:"
-echo "    Systém         Ne 05:00 (týdně)"
+echo "    Systém         Ne 23:00 (týdně)"
 echo "    Záloha DB      03:00 každé 3 dny (Google Drive)"
 echo ""
 echo "  BEZPEČNOST:"

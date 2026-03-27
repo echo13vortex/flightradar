@@ -2,7 +2,7 @@
 # =============================================================================
 # maintenance.sh — Noční údržba serveru FlightRadar
 #
-# Cron (root): 0 5 * * 0   (každou neděli v 05:00)
+# Cron (root): 0 23 * * 0   (každou neděli ve 23:00)
 # Setup: bash scripts/setup_crons.sh
 #
 # Co dělá:
