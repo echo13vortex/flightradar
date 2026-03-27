@@ -11,6 +11,8 @@ const COLS = [
   { key: 'collected_at', label: 'Nasbíráno' },
 ]
 
+const NON_SORTABLE = new Set(['source_url'])
+
 export default function PriceTable({ prices }) {
   const [sortKey, setSortKey] = useState('departure_date')
   const [sortDir, setSortDir] = useState('asc')
@@ -22,8 +24,6 @@ export default function PriceTable({ prices }) {
     if (va > vb) return sortDir === 'asc' ? 1 : -1
     return 0
   })
-
-  const NON_SORTABLE = new Set(['source_url'])
 
   const toggleSort = (key) => {
     if (NON_SORTABLE.has(key)) return
@@ -47,7 +47,9 @@ export default function PriceTable({ prices }) {
                 onClick={() => toggleSort(col.key)}
               >
                 {col.label}
-                {sortKey === col.key ? (sortDir === 'asc' ? ' ↑' : ' ↓') : ''}
+                {!NON_SORTABLE.has(col.key) && sortKey === col.key
+                  ? (sortDir === 'asc' ? ' ↑' : ' ↓')
+                  : ''}
               </th>
             ))}
           </tr>
@@ -58,15 +60,27 @@ export default function PriceTable({ prices }) {
               <td style={s.td}>{formatDate(p.departure_date)}</td>
               <td style={{ ...s.td, ...s.priceCell }}>{p.price_eur.toFixed(0)} €</td>
               <td style={s.td}>{p.airline_detail ?? '—'}</td>
-              <td style={s.td}>{p.stops === 0 ? 'Přímý' : `${p.stops}×`}</td>
-              <td style={s.td}>{formatTimes(p.departure_time, p.arrival_time)}</td>
+              <td style={{ ...s.td, ...s.stopsCell(p.stops) }}>
+                {p.stops === 0 ? 'Přímý' : `${p.stops}×`}
+              </td>
+              <td style={{ ...s.td, ...s.timeCell }}>{formatTimes(p.departure_time, p.arrival_time)}</td>
               <td style={s.td}>{formatDuration(p.duration_minutes)}</td>
               <td style={{ ...s.td, padding: '9px 8px', textAlign: 'center' }}>
                 {p.source_url
-                  ? <a href={p.source_url} target="_blank" rel="noopener noreferrer" style={s.link} title="Ověřit na Kiwi.com">🔗</a>
+                  ? (
+                    <a
+                      href={p.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={s.link}
+                      title="Ověřit na Kiwi.com"
+                    >
+                      🔗
+                    </a>
+                  )
                   : null}
               </td>
-              <td style={{ ...s.td, color: '#475569' }}>{formatDatetime(p.collected_at)}</td>
+              <td style={{ ...s.td, ...s.mutedCell }}>{formatDatetime(p.collected_at)}</td>
             </tr>
           ))}
         </tbody>
@@ -102,8 +116,9 @@ function formatTimes(dep, arr) {
 const s = {
   wrap: {
     overflowX: 'auto',
-    borderRadius: 10,
-    border: '1px solid #1e293b',
+    borderRadius: 14,
+    border: '1px solid rgba(255,255,255,0.07)',
+    background: 'rgba(255,255,255,0.02)',
   },
   table: {
     width: '100%',
@@ -111,32 +126,47 @@ const s = {
     fontSize: 13,
   },
   th: {
-    background: '#0f1117',
-    color: '#64748b',
+    background: 'rgba(255,255,255,0.03)',
+    color: 'rgba(255,255,255,0.28)',
     fontWeight: 600,
     padding: '10px 14px',
     textAlign: 'left',
     cursor: 'pointer',
     userSelect: 'none',
     whiteSpace: 'nowrap',
-    borderBottom: '1px solid #1e293b',
+    borderBottom: '1px solid rgba(255,255,255,0.07)',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: '0.07em',
   },
   thActive: { color: '#38bdf8' },
   td: {
-    padding: '9px 14px',
-    color: '#cbd5e1',
-    borderBottom: '1px solid #1a2132',
+    padding: '10px 14px',
+    color: 'rgba(255,255,255,0.65)',
+    borderBottom: '1px solid rgba(255,255,255,0.04)',
     whiteSpace: 'nowrap',
   },
-  trEven: { background: '#111827' },
-  link: {
-    fontSize: 15,
-    textDecoration: 'none',
-    opacity: 0.7,
-    transition: 'opacity 0.15s',
-  },
+  trEven: { background: 'rgba(255,255,255,0.015)' },
   priceCell: {
     fontWeight: 700,
     color: '#38bdf8',
+    fontSize: 14,
+  },
+  timeCell: {
+    color: 'rgba(255,255,255,0.75)',
+    fontVariantNumeric: 'tabular-nums',
+  },
+  mutedCell: {
+    color: 'rgba(255,255,255,0.22)',
+    fontSize: 12,
+  },
+  stopsCell: (stops) => ({
+    color: stops === 0 ? 'rgba(74,222,128,0.80)' : 'rgba(255,255,255,0.50)',
+  }),
+  link: {
+    fontSize: 15,
+    textDecoration: 'none',
+    opacity: 0.65,
+    transition: 'opacity 0.15s',
   },
 }

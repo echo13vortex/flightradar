@@ -15,8 +15,6 @@ export default function App() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    // Destinations and summary are fetched independently so that
-    // a summary failure doesn't prevent destinations from loading.
     const fetchDests = fetch(`${API}/destinations`)
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json() })
       .then(dests => setDestinations(dests))
@@ -31,13 +29,13 @@ export default function App() {
   }, [])
 
   return (
-    <div style={styles.root}>
+    <div style={s.root}>
       <Header onLogClick={() => setShowLog(v => !v)} />
 
-      {loading && <div style={styles.center}>Načítám data…</div>}
+      {loading && <div style={s.center}>Načítám data…</div>}
 
       {error && (
-        <div style={styles.error}>
+        <div style={s.error}>
           <span style={{ fontSize: 20 }}>⚠️</span> {error}
         </div>
       )}
@@ -49,7 +47,6 @@ export default function App() {
             selected={selected}
             onSelect={iata => setSelected(selected === iata ? null : iata)}
           />
-
           {selected && (
             <RouteDetail
               iata={selected}
@@ -57,7 +54,6 @@ export default function App() {
               onClose={() => setSelected(null)}
             />
           )}
-
           {showLog && <SnapshotLog />}
         </>
       )}
@@ -65,22 +61,24 @@ export default function App() {
   )
 }
 
-const styles = {
+const s = {
   root: {
-    maxWidth: 1100,
+    maxWidth: 1140,
     margin: '0 auto',
-    padding: '24px 16px',
+    padding: '32px 20px',
   },
   center: {
     textAlign: 'center',
-    padding: 60,
-    color: '#94a3b8',
-    fontSize: 18,
+    padding: 80,
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 16,
   },
   error: {
-    background: '#1e1b2e',
-    border: '1px solid #7c3aed',
-    borderRadius: 10,
+    background: 'rgba(124,58,237,0.08)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    border: '1px solid rgba(124,58,237,0.25)',
+    borderRadius: 12,
     padding: '16px 20px',
     color: '#c4b5fd',
     display: 'flex',

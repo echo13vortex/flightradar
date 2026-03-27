@@ -4,14 +4,14 @@ export default function Summary({ items, selected, onSelect }) {
   if (!items.length) {
     return (
       <div style={s.empty}>
-        Žádná data. Spusť sběr: <code>python main.py</code>
+        Žádná data. Spusť sběr: <code style={s.code}>python main.py</code>
       </div>
     )
   }
 
   return (
     <div>
-      <h2 style={s.heading}>Přehled destinací</h2>
+      <p style={s.heading}>Destinace</p>
       <div style={s.grid}>
         {items.map(item => (
           <DestCard
@@ -52,14 +52,12 @@ function DestCard({ item, active, onClick }) {
       {hasData ? (
         <>
           <div style={s.price}>
-            {item.current_cheapest_eur?.toFixed(0)} <span style={s.currency}>EUR</span>
+            {item.current_cheapest_eur?.toFixed(0)}<span style={s.currency}> EUR</span>
           </div>
           <div style={s.detail}>
             <span style={s.airline}>{item.current_cheapest_airline ?? '—'}</span>
             {item.current_cheapest_date && (
-              <span style={s.depDate}>
-                · odlet {formatDate(item.current_cheapest_date)}
-              </span>
+              <span style={s.depDate}> · odlet {formatDate(item.current_cheapest_date)}</span>
             )}
           </div>
           {item.avg_eur && (
@@ -70,7 +68,7 @@ function DestCard({ item, active, onClick }) {
         <div style={s.noData}>Zatím žádná data</div>
       )}
 
-      <div style={s.clickHint}>{active ? '▲ Skrýt detail' : '▼ Zobrazit detail'}</div>
+      <div style={s.clickHint}>{active ? '▲ Skrýt' : '▼ Detail'}</div>
     </div>
   )
 }
@@ -80,32 +78,38 @@ function formatDate(d) {
   return dt.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+const glass = {
+  background: 'rgba(255,255,255,0.04)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.08)',
+}
+
 const s = {
   heading: {
-    fontSize: 16,
+    fontSize: 11,
     fontWeight: 600,
-    color: '#64748b',
+    color: 'rgba(255,255,255,0.25)',
     textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    marginBottom: 16,
+    letterSpacing: '0.10em',
+    marginBottom: 14,
   },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-    gap: 16,
+    gap: 14,
     marginBottom: 32,
   },
   card: {
-    background: '#141824',
-    border: '1px solid #1e293b',
-    borderRadius: 14,
+    ...glass,
+    borderRadius: 18,
     padding: '20px 22px',
-    transition: 'border-color 0.15s, box-shadow 0.15s',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
     userSelect: 'none',
   },
   cardActive: {
-    borderColor: '#3b82f6',
-    boxShadow: '0 0 0 2px rgba(59,130,246,0.2)',
+    borderColor: 'rgba(56,189,248,0.45)',
+    boxShadow: '0 0 0 1px rgba(56,189,248,0.15), 0 8px 32px rgba(0,0,0,0.3)',
   },
   cardTop: {
     display: 'flex',
@@ -117,24 +121,41 @@ const s = {
     fontSize: 28,
   },
   badge: (type) => ({
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 600,
     padding: '3px 8px',
     borderRadius: 20,
-    background: type === 'below' ? '#052e16' : type === 'above' ? '#450a0a' : '#1e293b',
-    color: type === 'below' ? '#4ade80' : type === 'above' ? '#f87171' : '#64748b',
-    border: `1px solid ${type === 'below' ? '#166534' : type === 'above' ? '#991b1b' : '#334155'}`,
+    letterSpacing: '0.03em',
+    background: type === 'below'
+      ? 'rgba(74,222,128,0.10)'
+      : type === 'above'
+        ? 'rgba(248,113,113,0.10)'
+        : 'rgba(255,255,255,0.05)',
+    color: type === 'below'
+      ? '#4ade80'
+      : type === 'above'
+        ? '#f87171'
+        : 'rgba(255,255,255,0.22)',
+    border: `1px solid ${
+      type === 'below'
+        ? 'rgba(74,222,128,0.20)'
+        : type === 'above'
+          ? 'rgba(248,113,113,0.20)'
+          : 'rgba(255,255,255,0.08)'
+    }`,
   }),
   dest: {
     fontSize: 17,
     fontWeight: 700,
-    color: '#f1f5f9',
+    color: 'rgba(255,255,255,0.88)',
     marginBottom: 2,
+    letterSpacing: '-0.2px',
   },
   iata: {
-    fontSize: 12,
-    color: '#475569',
-    marginBottom: 12,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.22)',
+    marginBottom: 14,
+    letterSpacing: '0.08em',
   },
   price: {
     fontSize: 32,
@@ -142,45 +163,54 @@ const s = {
     color: '#38bdf8',
     lineHeight: 1,
     marginBottom: 6,
+    letterSpacing: '-0.5px',
   },
   currency: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: 400,
-    color: '#64748b',
+    color: 'rgba(56,189,248,0.55)',
   },
   detail: {
     fontSize: 12,
-    color: '#64748b',
+    color: 'rgba(255,255,255,0.30)',
     marginBottom: 6,
   },
   airline: {
-    color: '#94a3b8',
+    color: 'rgba(255,255,255,0.48)',
     fontWeight: 500,
   },
   depDate: {
-    color: '#64748b',
+    color: 'rgba(255,255,255,0.28)',
   },
   avg: {
     fontSize: 11,
-    color: '#475569',
+    color: 'rgba(255,255,255,0.20)',
     marginBottom: 4,
   },
   noData: {
     fontSize: 13,
-    color: '#334155',
+    color: 'rgba(255,255,255,0.18)',
     fontStyle: 'italic',
-    padding: '12px 0',
+    padding: '10px 0',
   },
   clickHint: {
-    fontSize: 11,
-    color: '#334155',
-    marginTop: 10,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.18)',
+    marginTop: 12,
     textAlign: 'right',
+    letterSpacing: '0.04em',
   },
   empty: {
     textAlign: 'center',
-    color: '#475569',
+    color: 'rgba(255,255,255,0.28)',
     padding: '48px 0',
     fontSize: 15,
+  },
+  code: {
+    background: 'rgba(255,255,255,0.06)',
+    borderRadius: 6,
+    padding: '2px 7px',
+    fontSize: 13,
+    fontFamily: 'monospace',
   },
 }

@@ -4,7 +4,9 @@ export default function Header({ onLogClick }) {
   return (
     <header style={s.header}>
       <div style={s.left}>
-        <span style={s.icon}>✈️</span>
+        <div style={s.iconWrap}>
+          <span style={s.icon}>✈️</span>
+        </div>
         <div>
           <h1 style={s.title}>FlightRadar</h1>
           <p style={s.sub}>Ceny letenek z Prahy (PRG) · aktualizace 1× denně</p>
@@ -22,36 +24,52 @@ const s = {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 32,
-    paddingBottom: 20,
-    borderBottom: '1px solid #1e293b',
+    marginBottom: 36,
+    paddingBottom: 24,
+    borderBottom: '1px solid rgba(255,255,255,0.06)',
   },
   left: {
     display: 'flex',
     alignItems: 'center',
-    gap: 14,
+    gap: 16,
+  },
+  iconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    background: 'rgba(255,255,255,0.05)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255,255,255,0.10)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   icon: {
-    fontSize: 36,
+    fontSize: 22,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: 700,
-    color: '#f1f5f9',
+    color: 'rgba(255,255,255,0.92)',
     letterSpacing: '-0.5px',
   },
   sub: {
-    fontSize: 13,
-    color: '#64748b',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.28)',
     marginTop: 2,
+    letterSpacing: '0.01em',
   },
   btn: {
-    background: '#1e293b',
-    border: '1px solid #334155',
-    borderRadius: 8,
-    color: '#94a3b8',
-    padding: '8px 14px',
+    background: 'rgba(255,255,255,0.05)',
+    backdropFilter: 'blur(12px)',
+    WebkitBackdropFilter: 'blur(12px)',
+    border: '1px solid rgba(255,255,255,0.10)',
+    borderRadius: 10,
+    color: 'rgba(255,255,255,0.45)',
+    padding: '8px 16px',
     cursor: 'pointer',
     fontSize: 13,
+    transition: 'all 0.15s',
   },
 }
