@@ -75,5 +75,9 @@ def collect(origin: str, destination: str) -> list[dict]:
     raw = [_parse_ryanair_flight(f) for f in (flights or [])]
     raw = [r for r in raw if r is not None]
 
-    logger.info(f"Ryanair: nalezeno {len(raw)} letů {origin}→{destination}")
+    # Filtruj jen prodloužené víkendy (čtvrtek=3, pátek=4)
+    weekend_dates = {str(d) for d in config.get_extended_weekend_dates()}
+    raw = [r for r in raw if str(r["departure_date"]) in weekend_dates]
+
+    logger.info(f"Ryanair: nalezeno {len(raw)} letů na prodloužené víkendy {origin}→{destination}")
     return normalize_many(raw)

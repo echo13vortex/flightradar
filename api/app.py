@@ -10,7 +10,8 @@ Endpointy:
   GET /api/snapshots             – poslední sběry (monitoring)
 
 Spuštění:
-  uvicorn api.app:app --reload --port 8000
+  uvicorn api.app:app --reload --port 8002
+  PORT=8002 uvicorn api.app:app --reload
 """
 
 import sys
@@ -340,4 +341,5 @@ def _check_destination(iata: str) -> dict:
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("api.app:app", host="0.0.0.0", port=8000, reload=True)
+    port = int(os.getenv("PORT", 8002))
+    uvicorn.run("api.app:app", host="0.0.0.0", port=port, reload=True)

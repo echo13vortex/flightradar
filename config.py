@@ -13,7 +13,10 @@ load_dotenv()
 ORIGIN = "PRG"  # Praha Václav Havel
 
 # Počet dní dopředu pro hledání letů
-SEARCH_DAYS_AHEAD = 180  # 6 měsíců
+SEARCH_DAYS_AHEAD = 365  # 1 rok
+
+# Amadeus (Qatar Airways / Emirates) – vypnout dokud není API klíč
+AMADEUS_ENABLED = False
 
 # Počet dospělých cestujících
 ADULT_COUNT = 1
@@ -28,7 +31,7 @@ DESTINATIONS = [
         "iata": "NRT",
         "country": "JP",
         "flag": "🇯🇵",
-        "airlines": ["amadeus"],  # Qatar Airways / Emirates via Amadeus
+        "airlines": ["amadeus"] if AMADEUS_ENABLED else [],  # Qatar Airways / Emirates
         "notes": "Přestup nutný (obvykle Doha nebo Dubaj)",
     },
     {
@@ -36,7 +39,7 @@ DESTINATIONS = [
         "iata": "OKA",
         "country": "JP",
         "flag": "🇯🇵",
-        "airlines": ["amadeus"],  # Qatar / Emirates + Japan domestic
+        "airlines": ["amadeus"] if AMADEUS_ENABLED else [],  # Qatar / Emirates
         "notes": "Přestup nutný (obvykle Tokio + domácí let v Japonsku)",
     },
     {
@@ -44,7 +47,7 @@ DESTINATIONS = [
         "iata": "FNC",
         "country": "PT",
         "flag": "🇵🇹",
-        "airlines": ["ryanair", "wizzair", "amadeus"],
+        "airlines": ["ryanair", "wizzair"] + (["amadeus"] if AMADEUS_ENABLED else []),
         "notes": "Přímé lety nebo přes Lisabon / Porto",
     },
     {
@@ -52,7 +55,7 @@ DESTINATIONS = [
         "iata": "LIS",
         "country": "PT",
         "flag": "🇵🇹",
-        "airlines": ["ryanair", "wizzair", "amadeus"],
+        "airlines": ["ryanair", "wizzair"] + (["amadeus"] if AMADEUS_ENABLED else []),
         "notes": "Přímé lety nebo přestup",
     },
 ]
@@ -95,3 +98,11 @@ def get_date_range():
     """Vrátí (date_from, date_to) pro vyhledávání."""
     dates = get_search_dates()
     return dates[0], dates[-1]
+
+def get_extended_weekend_dates() -> list:
+    """
+    Vrátí čtvrtky a pátky na příštích SEARCH_DAYS_AHEAD dní.
+    Prodloužený víkend = odlet ve čtvrtek nebo pátek.
+    weekday(): 0=Po, 1=Út, 2=St, 3=Čt, 4=Pá
+    """
+    return [d for d in get_search_dates() if d.weekday() in (3, 4)]

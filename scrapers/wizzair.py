@@ -130,8 +130,8 @@ def collect(origin: str, destination: str) -> list[dict]:
     raw_all = []
     today = date.today()
 
-    # Projdi příštích 6 měsíců
-    for month_offset in range(6):
+    # Projdi příštích 12 měsíců
+    for month_offset in range(12):
         target = today.replace(day=1)
         # posun o month_offset měsíců
         year = today.year + (today.month + month_offset - 1) // 12
@@ -142,5 +142,9 @@ def collect(origin: str, destination: str) -> list[dict]:
         raw_all.extend([r for r in raw if r is not None])
         time.sleep(0.5)  # slušné chování vůči serveru
 
-    logger.info(f"Wizzair: nalezeno {len(raw_all)} letů {origin}→{destination}")
+    # Filtruj jen prodloužené víkendy (čtvrtek=3, pátek=4)
+    weekend_dates = {str(d) for d in config.get_extended_weekend_dates()}
+    raw_all = [r for r in raw_all if str(r["departure_date"]) in weekend_dates]
+
+    logger.info(f"Wizzair: nalezeno {len(raw_all)} letů na prodloužené víkendy {origin}→{destination}")
     return normalize_many(raw_all)
