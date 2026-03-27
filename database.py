@@ -67,6 +67,7 @@ class Price(Base):
     duration_minutes = Column(Integer, nullable=True)
     departure_time = Column(String(5), nullable=True)    # "HH:MM"
     arrival_time = Column(String(5), nullable=True)      # "HH:MM"
+    source_url = Column(String(500), nullable=True)      # odkaz na kiwi.com pro ověření
     collected_at = Column(DateTime, default=datetime.utcnow)
 
     route = relationship("Route", back_populates="prices")
@@ -101,8 +102,30 @@ class Snapshot(Base):
 def init_db():
     """Vytvoří tabulky a naplní trasy z configu."""
     Base.metadata.create_all(bind=engine)
+    _migrate_db()
     _seed_routes()
     logger.info("Databáze inicializována.")
+
+
+def _migrate_db():
+    """Přidá chybějící sloupce do existujících tabulek (SQLite nemá ALTER TABLE IF NOT EXISTS)."""
+    migrations = [
+        ("prices", "departure_time", "VARCHAR(5)"),
+        ("prices", "arrival_time", "VARCHAR(5)"),
+        ("prices", "source_url", "VARCHAR(500)"),
+    ]
+    with engine.connect() as conn:
+        for table, column, col_type in migrations:
+            try:
+                conn.execute(
+                    __import__("sqlalchemy").text(
+                        f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"
+                    )
+                )
+                conn.commit()
+                logger.info(f"Migrace: přidán sloupec {table}.{column}")
+            except Exception:
+                pass  # sloupec již existuje
 
 
 def _seed_routes():
@@ -162,6 +185,7 @@ def save_prices(session: Session, route: Route, prices: list[dict]) -> int:
             duration_minutes=p.get("duration_minutes"),
             departure_time=p.get("departure_time"),
             arrival_time=p.get("arrival_time"),
+            source_url=p.get("source_url"),
         )
         session.add(price)
         saved += 1

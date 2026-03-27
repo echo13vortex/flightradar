@@ -80,6 +80,7 @@ def normalize_price(raw: dict) -> dict:
         "duration_minutes": raw.get("duration_minutes"),
         "departure_time": raw.get("departure_time"),
         "arrival_time": raw.get("arrival_time"),
+        "source_url": raw.get("source_url"),
     }
 
 

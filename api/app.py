@@ -67,6 +67,7 @@ class PriceOut(BaseModel):
     airline_detail: Optional[str]
     stops: int
     duration_minutes: Optional[int]
+    source_url: Optional[str]
     collected_at: datetime
 
     class Config:

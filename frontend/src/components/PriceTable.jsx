@@ -7,6 +7,7 @@ const COLS = [
   { key: 'stops', label: 'Přestupy' },
   { key: 'departure_time', label: 'Odlet → Přílet' },
   { key: 'duration_minutes', label: 'Doba letu' },
+  { key: 'source_url', label: '' },
   { key: 'collected_at', label: 'Nasbíráno' },
 ]
 
@@ -22,7 +23,10 @@ export default function PriceTable({ prices }) {
     return 0
   })
 
+  const NON_SORTABLE = new Set(['source_url'])
+
   const toggleSort = (key) => {
+    if (NON_SORTABLE.has(key)) return
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
     else { setSortKey(key); setSortDir('asc') }
   }
@@ -35,7 +39,11 @@ export default function PriceTable({ prices }) {
             {COLS.map(col => (
               <th
                 key={col.key}
-                style={{ ...s.th, ...(sortKey === col.key ? s.thActive : {}) }}
+                style={{
+                  ...s.th,
+                  ...(sortKey === col.key ? s.thActive : {}),
+                  ...(NON_SORTABLE.has(col.key) ? { cursor: 'default', width: 32 } : {}),
+                }}
                 onClick={() => toggleSort(col.key)}
               >
                 {col.label}
@@ -53,6 +61,11 @@ export default function PriceTable({ prices }) {
               <td style={s.td}>{p.stops === 0 ? 'Přímý' : `${p.stops}×`}</td>
               <td style={s.td}>{formatTimes(p.departure_time, p.arrival_time)}</td>
               <td style={s.td}>{formatDuration(p.duration_minutes)}</td>
+              <td style={{ ...s.td, padding: '9px 8px', textAlign: 'center' }}>
+                {p.source_url
+                  ? <a href={p.source_url} target="_blank" rel="noopener noreferrer" style={s.link} title="Ověřit na Kiwi.com">🔗</a>
+                  : null}
+              </td>
               <td style={{ ...s.td, color: '#475569' }}>{formatDatetime(p.collected_at)}</td>
             </tr>
           ))}
@@ -116,6 +129,12 @@ const s = {
     whiteSpace: 'nowrap',
   },
   trEven: { background: '#111827' },
+  link: {
+    fontSize: 15,
+    textDecoration: 'none',
+    opacity: 0.7,
+    transition: 'opacity 0.15s',
+  },
   priceCell: {
     fontWeight: 700,
     color: '#38bdf8',

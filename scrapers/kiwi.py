@@ -175,6 +175,7 @@ def collect(origin: str, destination: str) -> list[dict]:
         # Ulož jen nejlevnější let pro daný den
         if found:
             cheapest = min(found, key=lambda x: x["price"])
+            cheapest["source_url"] = _build_url(origin, destination, dep_date)
             raw_all.append(cheapest)
             logger.debug(
                 f"  {dep_date}: {cheapest['price']:.0f}€ "
@@ -216,6 +217,7 @@ def collect_return_leg(origin: str, destination: str, search_days: int | None = 
         found = _scrape_oneway(origin, destination, dep_date, max_stops)
         if found:
             cheapest = min(found, key=lambda x: x["price"])
+            cheapest["source_url"] = _build_url(origin, destination, dep_date)
             raw_all.append(cheapest)
 
     logger.info(f"Kiwi (zpáteční): {len(raw_all)} výsledků pro {origin}→{destination}")
