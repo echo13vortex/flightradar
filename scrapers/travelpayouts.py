@@ -88,17 +88,27 @@ def _fetch_monthly(origin: str, destination: str, token: str) -> list[dict]:
             r.raise_for_status()
             data = r.json()
             if data.get("success") and data.get("data"):
-                # data["data"] je dict: { "LIS": { "price": 99, "departure_at": "...", ... } }
-                for dest_code, info in data["data"].items():
-                    results.append({
-                        "price": float(info.get("price", 0)),
-                        "currency": config.BASE_CURRENCY,
-                        "departure_date": info.get("departure_at", f"{depart_date}-01")[:10],
-                        "airline_detail": info.get("airline", ""),
-                        "flight_numbers": info.get("flight_number_outbound_name", ""),
-                        "stops": info.get("number_of_changes", 0),
-                        "duration_minutes": None,
-                    })
+                # data["data"] = { "LIS": { "0": {flight}, "1": {flight}, ... } }
+                # klíče jsou počty zastávek (0=přímý, 1=1 přestup, ...)
+                for dest_code, stops_dict in data["data"].items():
+                    if not isinstance(stops_dict, dict):
+                        continue
+                    for stops_count, info in stops_dict.items():
+                        if not isinstance(info, dict):
+                            continue
+                        price = float(info.get("price", 0))
+                        if price <= 0:
+                            continue
+                        dep = info.get("departure_at", f"{depart_date}-01")[:10]
+                        results.append({
+                            "price": price,
+                            "currency": config.BASE_CURRENCY,
+                            "departure_date": dep,
+                            "airline_detail": info.get("airline", ""),
+                            "flight_numbers": str(info.get("flight_number", "")),
+                            "stops": int(stops_count) if stops_count.isdigit() else 0,
+                            "duration_minutes": info.get("duration_to"),
+                        })
         except Exception as e:
             logger.warning(f"Travelpayouts /cheap chyba pro {depart_date}: {e}")
 
