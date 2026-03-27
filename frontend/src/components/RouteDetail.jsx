@@ -6,6 +6,7 @@ const API = '/api'
 
 export default function RouteDetail({ iata, dest, onClose }) {
   const [stats, setStats] = useState(null)
+  const [returnStats, setReturnStats] = useState(null)
   const [chart, setChart] = useState([])
   const [prices, setPrices] = useState([])
   const [returnPrices, setReturnPrices] = useState([])
@@ -23,13 +24,17 @@ export default function RouteDetail({ iata, dest, onClose }) {
       fetch(`${API}/prices/${iata}?days=${days}&limit=200`).then(r => r.json()),
     ]
     if (hasReturn) {
-      requests.push(fetch(`${API}/prices/${iata}/return-leg?days=${days}&limit=200`).then(r => r.json()))
+      requests.push(
+        fetch(`${API}/prices/${iata}/return-leg?days=${days}&limit=200`).then(r => r.json()),
+        fetch(`${API}/prices/${iata}/return-leg/stats?days=${days}`).then(r => r.json()),
+      )
     }
-    Promise.all(requests).then(([s, c, p, ret]) => {
+    Promise.all(requests).then(([s, c, p, ret, retStats]) => {
       setStats(s)
       setChart(c)
       setPrices(p)
       if (ret) setReturnPrices(ret)
+      if (retStats) setReturnStats(retStats)
       setLoading(false)
     }).catch(() => setLoading(false))
   }, [iata])
@@ -74,6 +79,7 @@ export default function RouteDetail({ iata, dest, onClose }) {
         <>
           {/* Statistiky */}
           {direction === 'outbound' && stats && <StatsRow stats={stats} />}
+          {direction === 'return' && returnStats && <StatsRow stats={returnStats} />}
 
           {/* Graf */}
           {direction === 'outbound' && (

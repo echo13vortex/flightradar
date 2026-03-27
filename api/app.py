@@ -255,6 +255,66 @@ def get_stats(
         )
 
 
+@app.get("/api/prices/{iata}/return-leg/stats", response_model=StatsOut)
+def get_return_stats(
+    iata: str,
+    days: int = Query(default=365, ge=1, le=365),
+):
+    """Statistiky zpátečních letů (např. LIS→PRG pro destinaci LIS)."""
+    iata = iata.upper()
+    dest = _check_destination(iata)
+
+    if not dest.get("search_return"):
+        raise HTTPException(status_code=404, detail="Destination has no return leg data")
+
+    since = datetime.utcnow() - timedelta(days=days)
+
+    with db.get_session() as session:
+        agg = (
+            session.query(
+                func.min(db.Price.price_eur).label("min_eur"),
+                func.max(db.Price.price_eur).label("max_eur"),
+                func.avg(db.Price.price_eur).label("avg_eur"),
+                func.count(db.Price.id).label("cnt"),
+            )
+            .join(db.Route)
+            .filter(
+                db.Route.origin_iata == iata,
+                db.Route.destination_iata == config.ORIGIN,
+                db.Price.collected_at >= since,
+            )
+            .one()
+        )
+
+        cheapest = (
+            session.query(db.Price)
+            .join(db.Route)
+            .filter(
+                db.Route.origin_iata == iata,
+                db.Route.destination_iata == config.ORIGIN,
+                db.Price.departure_date >= date.today(),
+            )
+            .order_by(db.Price.price_eur)
+            .first()
+        )
+
+        avg = float(agg.avg_eur) if agg.avg_eur else None
+        current = float(cheapest.price_eur) if cheapest else None
+
+        return StatsOut(
+            iata=iata,
+            name=dest["name"],
+            min_eur=float(agg.min_eur) if agg.min_eur else None,
+            max_eur=float(agg.max_eur) if agg.max_eur else None,
+            avg_eur=round(avg, 2) if avg else None,
+            current_cheapest_eur=current,
+            current_cheapest_date=cheapest.departure_date if cheapest else None,
+            current_cheapest_airline=cheapest.airline_detail if cheapest else None,
+            is_below_avg=bool(current and avg and current < avg),
+            days_analyzed=int(agg.cnt or 0),
+        )
+
+
 @app.get("/api/prices/{iata}/chart", response_model=list[ChartPoint])
 def get_chart_data(
     iata: str,
